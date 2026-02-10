@@ -1,0 +1,618 @@
+/* FFmpeg Scene Cropper & Concatenator - Styles */
+
+body { 
+    font-family: sans-serif; 
+    max-width: 1200px; 
+    margin: 20px auto; 
+    line-height: 1.6; 
+    background: #f4f4f9; 
+}
+
+.card { 
+    background: white; 
+    padding: 20px; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    margin-bottom: 20px; 
+}
+
+/* Scene Styles */
+.scene { 
+    border-left: 14px solid #007bff; 
+    padding: 8px 10px 8px 44px; 
+    margin-bottom: 8px; 
+    position: relative; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    background: #eee;
+}
+
+.scene .drag-handle { 
+    position: absolute; 
+    left: -14px; 
+    top: 0; 
+    width: 14px; 
+    height: 100%; 
+    cursor: grab; 
+    background: linear-gradient(90deg, #0056b3 0%, #007bff 100%); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+
+.scene .drag-handle::before { 
+    content: '⋮⋮'; 
+    color: rgba(255,255,255,0.6); 
+    font-size: 10px; 
+    letter-spacing: -2px; 
+}
+
+.scene .drag-handle:hover { 
+    background: linear-gradient(90deg, #003d80 0%, #0056b3 100%); 
+}
+
+.scene .drag-handle:hover::before { 
+    color: rgba(255,255,255,0.9); 
+}
+
+.scene .drag-handle:active { 
+    cursor: grabbing; 
+}
+
+.scene.dragging { 
+    opacity: 0.5; 
+}
+
+.scene.drag-over { 
+    border-top: 3px solid #0056b3; 
+    margin-top: -3px; 
+}
+
+.scene.selected { 
+    outline: 3px solid #28a745; 
+    outline-offset: -3px; 
+    background: #e8f5e9; 
+}
+
+.scenes { 
+    max-height: 400px; 
+    overflow-y: auto; 
+    padding-right: 8px; 
+    margin-bottom: 10px; 
+}
+
+/* Grid Layouts */
+.grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+    gap: 10px; 
+}
+
+.scene .grid { 
+    display: flex; 
+    gap: 10px; 
+    align-items: center; 
+}
+
+/* Form Elements */
+label { 
+    display: block; 
+    font-size: 0.75em; 
+    font-weight: 600; 
+    margin-bottom: 3px; 
+}
+
+.scene label { 
+    display: block; 
+    font-size: 0.7em; 
+    font-weight: 600; 
+    margin-bottom: 2px; 
+}
+
+input, select { 
+    padding: 6px; 
+}
+
+.scene input, .scene select { 
+    width: 70px; 
+    padding-left: 9px;
+}
+
+.scene .clipStartField input { 
+    width: 70px; 
+    background: #f0f0f0; 
+}
+
+.scene:first-child .clipStartField input { 
+    background: #e0e0e0; 
+    cursor: not-allowed; 
+}
+
+.scene .panField { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    width: 56px; 
+    min-width: 56px; 
+}
+
+.start.warn { 
+    border-left: 6px solid #f39c12 !important;
+    background-color: #fff8c4 !important;
+    padding-left: 4px;
+}
+
+/* Make sure warn class overrides validation styling when both are present */
+/* .start.warn.input-valid,
+.start.warn.input-error {
+    background: #fff8c4;
+    border-left: 6px solid #f39c12 !important;
+} */
+
+.end.error { 
+    background: #ffcccc; 
+}
+
+textarea { 
+    width: 100%; 
+    height: 150px; 
+    font-family: monospace; 
+    background: #222; 
+    color: #0f0; 
+    padding: 10px; 
+    border-radius: 4px; 
+    box-sizing: border-box; 
+}
+
+/* Buttons */
+button { 
+    cursor: pointer; 
+    padding: 8px 12px; 
+    border: none; 
+    border-radius: 4px; 
+    background: #007bff; 
+    color: white; 
+    font-weight: bold; 
+}
+
+.remove-btn { 
+    background: #dc3545; 
+    margin-left: 8px; 
+    padding: 6px 10px; 
+}
+
+.remove-x { 
+    background: #dc3545; 
+    color: white; 
+    border: none; 
+    border-radius: 50%; 
+    width: 22px; 
+    height: 22px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    font-weight: 700; 
+    padding: 0; 
+    position: absolute; 
+    left: 12px; 
+    top: 50%; 
+    transform: translateY(-50%); 
+}
+
+.copy-btn { 
+    background: transparent; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 1.2em; 
+    padding: 4px 8px; 
+    opacity: 0.6; 
+}
+
+.copy-btn:hover { 
+    opacity: 1; 
+}
+
+.scene-copy-btn { 
+    position: absolute; 
+    right: 8px; 
+    top: 50%; 
+    transform: translateY(-50%); 
+    background: transparent; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 1em; 
+    padding: 4px; 
+    opacity: 0.5; 
+}
+
+.scene-copy-btn:hover { 
+    opacity: 1; 
+}
+
+/* Tabs */
+#tabsBar { 
+    display: flex; 
+    gap: 4px; 
+    align-items: flex-end; 
+    margin-bottom: 0; 
+}
+
+#tabs { 
+    display: flex; 
+    gap: 2px; 
+}
+
+.tab-button { 
+    padding: 10px 16px; 
+    border-radius: 8px 8px 0 0; 
+    background: #ddd; 
+    border: 1px solid #ccc; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    font-weight: 600; 
+    color: #555; 
+    position: relative; 
+    top: 1px; 
+}
+
+.tab-button.active { 
+    background: white; 
+    border-bottom: 1px solid white; 
+    color: black; 
+    z-index: 1; 
+}
+
+.tab-button:hover:not(.active) { 
+    background: #e8e8e8; 
+}
+
+.tab-button .tab-close { 
+    color: #999; 
+    font-size: 14px; 
+    margin-left: 4px; 
+}
+
+.tab-button .tab-close:hover { 
+    color: #dc3545; 
+}
+
+#tabsBar > button { 
+    margin-left: 8px; 
+    margin-bottom: 4px; 
+    padding: 6px 10px; 
+    font-size: 0.9em; 
+}
+
+#tabsContent { 
+    background: white; 
+    border: 1px solid #ccc; 
+    border-radius: 0 8px 8px 8px; 
+    padding: 20px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    margin-bottom: 20px; 
+}
+
+.tab-content { 
+    display: none; 
+}
+
+.tab-content.active { 
+    display: block; 
+}
+
+/* Save/Load Bar */
+.save-load-bar { 
+    display: flex; 
+    gap: 8px; 
+    margin-bottom: 12px; 
+}
+
+.save-load-bar button { 
+    background: #28a745; 
+}
+
+.save-load-bar button.load-btn { 
+    background: #6c757d; 
+}
+
+/* Command Section */
+.command-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 10px; 
+}
+
+.command-header h3 { 
+    margin: 0; 
+}
+
+/* Video Preview Styles */
+#videoPreview { 
+    margin-bottom: 20px; 
+}
+
+#videoContainer { 
+    position: relative; 
+    display: inline-block; 
+    background: #000; 
+}
+
+#previewVideo { 
+    display: block; 
+    max-width: 100%; 
+}
+
+#cropOverlay { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    pointer-events: none; 
+}
+
+#cropWindow { 
+    position: absolute; 
+    border: 2px solid #00ff00; 
+    background: rgba(0, 255, 0, 0.1); 
+    cursor: ew-resize; 
+    pointer-events: auto; 
+}
+
+#cropWindowEnd { 
+    position: absolute; 
+    border: 2px solid #ff0000; 
+    background: rgba(255, 0, 0, 0.1); 
+    cursor: ew-resize; 
+    pointer-events: auto; 
+    display: none; 
+}
+
+#videoControls { 
+    margin-top: 10px; 
+    display: flex; 
+    gap: 8px; 
+    align-items: center; 
+    flex-wrap: wrap; 
+}
+
+#videoControls button { 
+    padding: 6px 12px; 
+    font-size: 0.9em; 
+}
+
+#videoControls .frame-btns button { 
+    padding: 6px 10px; 
+}
+
+#timeDisplay { 
+    font-family: monospace; 
+    font-size: 1.1em; 
+    min-width: 400px; 
+}
+
+#cropDisplay { 
+    font-family: monospace; 
+    font-size: 0.9em; 
+    color: #666; 
+}
+
+.video-load-section { 
+    margin-bottom: 15px; 
+    display: flex; 
+    gap: 10px; 
+    align-items: center; 
+    flex-wrap: wrap; 
+}
+
+.video-load-section input[type="file"] { 
+    flex: 1; 
+    min-width: 200px; 
+}
+
+#videoSeek { 
+    width: 100%; 
+    margin: 10px 0; 
+}
+
+.scene-actions { 
+    margin-top: 10px; 
+    padding-top: 10px; 
+    border-top: 1px solid #ddd; 
+    display: flex; 
+    gap: 8px; 
+    flex-wrap: wrap; 
+}
+
+.scene-actions button { 
+    background: #28a745; 
+}
+
+.scene-actions button.set-btn { 
+    background: #17a2b8; 
+}
+
+/* Error and Success Notifications */
+.error-notification, .success-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-width: 400px;
+    z-index: 9999;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: opacity 0.3s ease;
+}
+
+.error-notification {
+    background: #dc3545;
+    color: white;
+}
+
+.success-notification {
+    background: #28a745;
+    color: white;
+}
+
+.error-content, .success-content {
+    padding: 15px 20px;
+    position: relative;
+}
+
+.error-content strong, .success-content strong {
+    display: block;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.error-content p, .success-content p {
+    margin: 0;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.error-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.error-close:hover {
+    opacity: 0.7;
+}
+
+/* Input validation states */
+.input-error {
+    border-left: 6px solid #ac1c24 !important;
+    background-color: #ffdddd !important;
+    padding-left: 4px !important;
+    border-color: #ac1c24 !important;
+}
+
+.input-warning {
+    border: 2px solid #ffc107 !important;
+    background-color: #fffbf0 !important;
+}
+
+.input-valid {
+    border-color: #ccc !important;
+    border-style: solid !important;
+    background-color: #fff !important;
+}
+
+.validation-error {
+    color: #dc3545;
+    font-size: 0.75em;
+    margin-top: 2px;
+    display: block;
+    line-height: 1.2;
+}
+
+.validation-warning {
+    color: #856404;
+    font-size: 0.75em;
+    margin-top: 2px;
+    display: block;
+    line-height: 1.2;
+}
+
+.validation-success {
+    color: #155724;
+    font-size: 0.75em;
+    margin-top: 2px;
+    display: block;
+    line-height: 1.2;
+}
+
+/* Form section validation */
+.form-section.invalid {
+    border-left: 4px solid #dc3545;
+    padding-left: 16px;
+}
+
+.form-section.valid {
+    border-left: 4px solid #28a745;
+    padding-left: 16px;
+}
+
+/* Improved input focus states */
+input:focus, select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.input-error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+}
+
+.input-valid:focus {
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Use neutral blue instead of green */
+}
+/* Tooltip styling for validation messages on hover */
+input[data-validation-message]:hover::after {
+    content: attr(data-validation-message);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: var(--tooltip-bg);
+    color: var(--tooltip-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    line-height: 1.2;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-left: 3px solid var(--tooltip-border);
+    max-width: 250px;
+    white-space: normal;
+    pointer-events: none;
+}
+
+input[data-validation-message] {
+    position: relative;
+}
+
+input[data-validation-type="error"] {
+    --tooltip-bg: #f8d7da;
+    --tooltip-color: #721c24;
+    --tooltip-border: #dc3545;
+}
+
+input[data-validation-type="warning"] {
+    --tooltip-bg: #fff3cd;
+    --tooltip-color: #856404;
+    --tooltip-border: #ffc107;
+}
+
+input[data-validation-type="success"] {
+    --tooltip-bg: #d4edda;
+    --tooltip-color: #155724;
+    --tooltip-border: #28a745;
+}
+
+/* Arrow for tooltip */
+input[data-validation-message]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 97%;
+    left: 12px;
+    border: 5px solid transparent;
+    border-top-color: var(--tooltip-bg);
+    z-index: 1001;
+    pointer-events: none;
+}

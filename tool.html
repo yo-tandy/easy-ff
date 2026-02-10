@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EasyFF - Video Scene Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h2>EasyFF Scene Generator</h2>
+
+    <div class="save-load-bar">
+        <button data-action="save-project">💾 Save Project</button>
+        <button class="load-btn" data-action="load-project">📂 Load Project</button>
+        <button data-action="download-script" style="background:#17a2b8">📜 Download Script</button>
+    </div>
+
+    <div class="card">
+        <h3>Global Settings</h3>
+        <div class="grid">
+            <div>
+                <label>Input File</label>
+                <input type="text" id="inputName" value="input.mkv" data-validate="filename">
+            </div>
+            <div>
+                <label>Input Dimensions (WxH)</label>
+                <input type="text" id="inDim" value="1280x640" data-validate="dimensions">
+            </div>
+            <div>
+                <label>Output Dimensions (WxH)</label>
+                <input type="text" id="outDim" value="720x1280" data-validate="dimensions">
+            </div>
+        </div>
+    </div>
+
+    <div class="card" id="videoPreview">
+        <h3>Video Preview</h3>
+        <div class="video-load-section">
+            <input type="file" id="videoFile" accept="video/*">
+            <span id="videoInfo"></span>
+        </div>
+        <div id="videoContainer" style="display:none;">
+            <video id="previewVideo" muted></video>
+            <canvas id="cropOverlay"></canvas>
+            <div id="cropWindow"></div>
+            <div id="cropWindowEnd"></div>
+        </div>
+        <input type="range" id="videoSeek" min="0" max="100" step="0.001" value="0" style="display:none;">
+        <div id="videoControls" style="display:none;">
+            <div class="frame-btns">
+                <button data-action="step-frame-back-10" title="Back 10 frames">⏪10</button>
+                <button data-action="step-frame-back-1" title="Back 1 frame">◀</button>
+                <button data-action="toggle-play" id="playPauseBtn">▶ Play</button>
+                <button data-action="step-frame-forward-1" title="Forward 1 frame">▶</button>
+                <button data-action="step-frame-forward-10" title="Forward 10 frames">10⏩</button>
+            </div>
+            <span id="timeDisplay">0:00.000 / 0:00.000</span>
+            <span id="cropDisplay">Crop: 50%</span>
+            <span id="cropDisplayEnd" style="display:none;">End: 50%</span>
+        </div>
+        <div class="scene-actions" style="display:none;" id="sceneActions">
+            <button data-action="set-scene-start">📍 Set Start Time</button>
+            <button data-action="set-scene-end">🏁 Set End Time</button>
+            <button class="set-btn" data-action="set-scene-crop">🎯 Set Crop Position</button>
+            <button class="set-btn" data-action="toggle-pan-mode" id="panToggleBtn">Pan: OFF</button>
+            <button class="set-btn" data-action="set-scene-crop-end" id="setEndCropBtn" style="display:none;">🎯 Set End Crop</button>
+            <button data-action="add-scene-from-preview">➕ Add New Scene</button>
+        </div>
+    </div>
+
+    <div id="tabsBar">
+        <div id="tabs"></div>
+        <button data-action="add-tab">+ Add Clip</button>
+    </div>
+
+    <div id="tabsContent"></div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
