@@ -307,50 +307,6 @@ export class InputValidator {
     }
 
     /**
-     * Validate scene timing (start, end, length) for consistency
-     * @param {HTMLInputElement} startInput - Start time input
-     * @param {HTMLInputElement} endInput - End time input
-     * @param {HTMLInputElement} lengthInput - Length input
-     */
-    validateSceneTiming(startInput, endInput, lengthInput) {
-        try {
-            const startResult = this.validateInput(startInput, 'time');
-            const endResult = this.validateInput(endInput, 'time');
-            const lengthResult = this.validateInput(lengthInput, 'duration');
-
-            if (startResult.valid && endResult.valid && lengthResult.valid) {
-                const startTime = startResult.value;
-                const endTime = endResult.value;
-                const length = lengthResult.value;
-                
-                // Check if timing is consistent
-                const calculatedLength = endTime - startTime;
-                const tolerance = 0.1; // 100ms tolerance
-                
-                if (endTime <= startTime) {
-                    this.showValidationMessage(endInput, 'End time must be after start time', 'error');
-                    return false;
-                } else if (Math.abs(calculatedLength - length) > tolerance) {
-                    this.showValidationMessage(lengthInput, 
-                        `Length mismatch: Expected ${calculatedLength.toFixed(2)}s`, 'warning');
-                    return false;
-                } else {
-                    // Clear any timing validation messages
-                    this.clearValidationMessage(startInput);
-                    this.clearValidationMessage(endInput);
-                    this.clearValidationMessage(lengthInput);
-                    return true;
-                }
-            }
-            
-            return false;
-        } catch (error) {
-            console.warn('Error validating scene timing:', error);
-            return false;
-        }
-    }
-
-    /**
      * Enable or disable validation
      * @param {boolean} enabled
      */

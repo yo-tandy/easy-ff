@@ -86,64 +86,6 @@ export class ErrorHandler {
         return true;
     }
 
-    static validateNumericInput(value, fieldName, options = {}) {
-        const { min = 0, max = Infinity, allowNegative = false, allowZero = true } = options;
-        
-        if (value === '' || value === null || value === undefined) {
-            throw new Error(`${fieldName} is required`);
-        }
-
-        const num = parseFloat(value);
-        if (isNaN(num)) {
-            throw new Error(`${fieldName} must be a valid number`);
-        }
-
-        if (!allowNegative && num < 0) {
-            throw new Error(`${fieldName} cannot be negative`);
-        }
-
-        if (!allowZero && num === 0) {
-            throw new Error(`${fieldName} cannot be zero`);
-        }
-
-        if (num < min) {
-            throw new Error(`${fieldName} must be at least ${min}`);
-        }
-
-        if (num > max) {
-            throw new Error(`${fieldName} cannot exceed ${max}`);
-        }
-
-        return num;
-    }
-
-    static validateDimensions(dimString) {
-        if (!dimString || typeof dimString !== 'string') {
-            throw new Error('Dimensions are required');
-        }
-
-        const parts = dimString.split('x');
-        if (parts.length !== 2) {
-            throw new Error('Dimensions must be in format "WIDTHxHEIGHT" (e.g., "1920x1080")');
-        }
-
-        const [width, height] = parts.map(p => parseInt(p.trim()));
-        
-        if (isNaN(width) || isNaN(height)) {
-            throw new Error('Dimensions must be valid numbers');
-        }
-
-        if (width <= 0 || height <= 0) {
-            throw new Error('Dimensions must be positive numbers');
-        }
-
-        if (width > 7680 || height > 4320) {
-            throw new Error('Dimensions too large (maximum 7680x4320)');
-        }
-
-        return [width, height];
-    }
-
     static async safeAsync(asyncFn, errorMessage = 'An error occurred') {
         try {
             return await asyncFn();

@@ -1,4 +1,5 @@
 import { DOM_ELEMENTS, DEFAULTS } from './constants.js';
+import { parseDimensions } from './utils.js';
 import { ErrorHandler } from './error-handler.js';
 
 export class ProjectManager {
@@ -25,14 +26,14 @@ export class ProjectManager {
             }
 
             try {
-                ErrorHandler.validateDimensions(data.inDim);
-                ErrorHandler.validateDimensions(data.outDim);
+                parseDimensions(data.inDim);
+                parseDimensions(data.outDim);
             } catch (error) {
                 throw new Error(`Invalid dimensions: ${error.message}`);
             }
 
             const tabButtons = document.querySelectorAll('.tab-button');
-            
+
             if (tabButtons.length === 0) {
                 throw new Error('No clips to save');
             }
@@ -45,12 +46,22 @@ export class ProjectManager {
 
                 scenes.forEach(scene => {
                     try {
+                        const startVal = parseFloat(scene.querySelector('.start')?.value);
+                        const endVal = parseFloat(scene.querySelector('.end')?.value);
+                        const hCropVal = parseFloat(scene.querySelector('.hCrop')?.value);
+                        const hCropEndVal = parseFloat(scene.querySelector('.hCropEnd')?.value);
+
+                        if (isNaN(startVal)) throw new Error('Start time is required');
+                        if (isNaN(endVal)) throw new Error('End time is required');
+                        if (isNaN(hCropVal)) throw new Error('Horizontal crop is required');
+                        if (isNaN(hCropEndVal)) throw new Error('End horizontal crop is required');
+
                         const sceneData = {
-                            start: ErrorHandler.validateNumericInput(scene.querySelector('.start')?.value, 'Start time'),
-                            end: ErrorHandler.validateNumericInput(scene.querySelector('.end')?.value, 'End time'),
-                            hCrop: ErrorHandler.validateNumericInput(scene.querySelector('.hCrop')?.value, 'Horizontal crop', { min: 0, max: 100 }),
+                            start: startVal,
+                            end: endVal,
+                            hCrop: hCropVal,
                             pan: scene.querySelector('.panToggle')?.checked || false,
-                            hCropEnd: ErrorHandler.validateNumericInput(scene.querySelector('.hCropEnd')?.value, 'End horizontal crop', { min: 0, max: 100 }),
+                            hCropEnd: hCropEndVal,
                             panMethod: scene.querySelector('.panMethod')?.value || 'linear'
                         };
                         
@@ -180,8 +191,8 @@ export class ProjectManager {
                 const outDim = data.outDim || DEFAULTS.OUTPUT_DIMENSIONS;
                 
                 try {
-                    ErrorHandler.validateDimensions(inDim);
-                    ErrorHandler.validateDimensions(outDim);
+                    parseDimensions(inDim);
+                    parseDimensions(outDim);
                 } catch (error) {
                     throw new Error(`Invalid dimensions in project file: ${error.message}`);
                 }
@@ -222,11 +233,11 @@ export class ProjectManager {
                     
                     clip.scenes.forEach((scene, sceneIndex) => {
                         try {
-                            ErrorHandler.validateNumericInput(scene.start, 'Start time');
-                            ErrorHandler.validateNumericInput(scene.end, 'End time');
-                            ErrorHandler.validateNumericInput(scene.hCrop, 'Horizontal crop', { min: 0, max: 100 });
-                            ErrorHandler.validateNumericInput(scene.hCropEnd, 'End horizontal crop', { min: 0, max: 100 });
-                            
+                            if (typeof scene.start !== 'number' || isNaN(scene.start)) throw new Error('Start time must be a valid number');
+                            if (typeof scene.end !== 'number' || isNaN(scene.end)) throw new Error('End time must be a valid number');
+                            if (typeof scene.hCrop !== 'number' || isNaN(scene.hCrop)) throw new Error('Horizontal crop must be a valid number');
+                            if (typeof scene.hCropEnd !== 'number' || isNaN(scene.hCropEnd)) throw new Error('End horizontal crop must be a valid number');
+
                             if (scene.end <= scene.start) {
                                 throw new Error(`End time must be greater than start time`);
                             }

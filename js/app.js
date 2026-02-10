@@ -13,7 +13,7 @@ export class FFmpegToolApp {
         this.commandGenerator = new CommandGenerator();
         this.videoPreview = new VideoPreviewManager();
         this.sceneManager = new SceneManager(this.commandGenerator, this.videoPreview, this.validationSetup.inputValidator);
-        this.tabManager = new TabManager(this.sceneManager, this.commandGenerator);
+        this.tabManager = new TabManager(this.sceneManager, this.commandGenerator, this.validationSetup);
         this.projectManager = new ProjectManager(this.tabManager, this.videoPreview, this.commandGenerator);
 
         this.init();
@@ -22,11 +22,8 @@ export class FFmpegToolApp {
     init() {
         this.setupGlobalEventListeners();
         this.initializeDefaults();
-        
-        // Initialize validation system after DOM is ready
-        setTimeout(() => {
-            this.validationSetup.initialize();
-        }, 100);
+        this.validationSetup.initialize();
+        this.tabManager.initializeFirstTab();
     }
 
     setupGlobalEventListeners() {

@@ -143,13 +143,6 @@ input, select {
     padding-left: 4px;
 }
 
-/* Make sure warn class overrides validation styling when both are present */
-/* .start.warn.input-valid,
-.start.warn.input-error {
-    background: #fff8c4;
-    border-left: 6px solid #f39c12 !important;
-} */
-
 .end.error { 
     background: #ffcccc; 
 }

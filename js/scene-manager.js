@@ -83,71 +83,10 @@ export class SceneManager {
         const endInput = sceneEl.querySelector('.end');
         const clipStartInput = sceneEl.querySelector('.clipStart');
 
-        const updateFromStart = () => {
-            try {
-                const startResult = this.inputValidator.validateInput(startInput, 'time');
-                const endResult = this.inputValidator.validateInput(endInput, 'time');
-                
-                if (startResult.valid && endResult.valid) {
-                    const newLength = Math.max(0, endResult.value - startResult.value);
-                    lengthInput.value = newLength.toFixed(2);
-                    this.inputValidator.validateInput(lengthInput, 'duration');
-                }
-                
-                this.recalcClipStarts(tabId);
-                this.commandGenerator.updateCommand(tabId);
-                this.validateAllTabs();
-            } catch (error) {
-                ErrorHandler.showError(`Error updating scene timing: ${error.message}`);
-            }
-        };
-
-        const updateFromEnd = () => {
-            try {
-                const startResult = this.inputValidator.validateInput(startInput, 'time');
-                const endResult = this.inputValidator.validateInput(endInput, 'time');
-                
-                if (startResult.valid && endResult.valid) {
-                    const newLength = Math.max(0, endResult.value - startResult.value);
-                    lengthInput.value = newLength.toFixed(2);
-                    this.inputValidator.validateInput(lengthInput, 'duration');
-                }
-                
-                this.recalcClipStarts(tabId);
-                this.commandGenerator.updateCommand(tabId);
-                this.validateAllTabs();
-            } catch (error) {
-                ErrorHandler.showError(`Error updating scene timing: ${error.message}`);
-            }
-        };
-
-        const updateFromLength = () => {
-            try {
-                const startResult = this.inputValidator.validateInput(startInput, 'time');
-                const lengthResult = this.inputValidator.validateInput(lengthInput, 'duration');
-                
-                if (startResult.valid && lengthResult.valid) {
-                    const newEnd = startResult.value + lengthResult.value;
-                    endInput.value = newEnd.toFixed(2);
-                    this.inputValidator.validateInput(endInput, 'time');
-                }
-                
-                this.recalcClipStarts(tabId);
-                this.commandGenerator.updateCommand(tabId);
-                this.validateAllTabs();
-            } catch (error) {
-                ErrorHandler.showError(`Error updating scene timing: ${error.message}`);
-            }
-        };
-
-        const handleClipStartEdit = () => {
-            this.handleClipStartEdit(tabId, sceneEl);
-        };
-
-        startInput.addEventListener('input', updateFromStart);
-        endInput.addEventListener('input', updateFromEnd);
-        lengthInput.addEventListener('input', updateFromLength);
-        clipStartInput.addEventListener('input', handleClipStartEdit);
+        startInput.addEventListener('input', () => this._updateSceneTiming(startInput, endInput, lengthInput, 'start', tabId));
+        endInput.addEventListener('input', () => this._updateSceneTiming(startInput, endInput, lengthInput, 'end', tabId));
+        lengthInput.addEventListener('input', () => this._updateSceneTiming(startInput, endInput, lengthInput, 'length', tabId));
+        clipStartInput.addEventListener('input', () => this.handleClipStartEdit(tabId, sceneEl));
 
         // Pan toggle
         const panToggle = sceneEl.querySelector('.panToggle');
@@ -195,6 +134,36 @@ export class SceneManager {
         startInput.addEventListener('blur', validateTiming);
         endInput.addEventListener('blur', validateTiming);
         lengthInput.addEventListener('blur', validateTiming);
+    }
+
+    _updateSceneTiming(startInput, endInput, lengthInput, changedField, tabId) {
+        try {
+            if (changedField === 'length') {
+                const startResult = this.inputValidator.validateInput(startInput, 'time');
+                const lengthResult = this.inputValidator.validateInput(lengthInput, 'duration');
+
+                if (startResult.valid && lengthResult.valid) {
+                    const newEnd = startResult.value + lengthResult.value;
+                    endInput.value = newEnd.toFixed(2);
+                    this.inputValidator.validateInput(endInput, 'time');
+                }
+            } else {
+                const startResult = this.inputValidator.validateInput(startInput, 'time');
+                const endResult = this.inputValidator.validateInput(endInput, 'time');
+
+                if (startResult.valid && endResult.valid) {
+                    const newLength = Math.max(0, endResult.value - startResult.value);
+                    lengthInput.value = newLength.toFixed(2);
+                    this.inputValidator.validateInput(lengthInput, 'duration');
+                }
+            }
+
+            this.recalcClipStarts(tabId);
+            this.commandGenerator.updateCommand(tabId);
+            this.validateAllTabs();
+        } catch (error) {
+            ErrorHandler.showError(`Error updating scene timing: ${error.message}`);
+        }
     }
 
     addScene(tabId, overrideStart = null) {

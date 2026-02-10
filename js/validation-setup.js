@@ -48,32 +48,6 @@ export class ValidationSetup {
             this.inputValidator.setupInputValidation(outDim, 'dimensions');
         }
 
-        // Add validation to crop inputs if they exist
-        this.setupCropValidation();
-    }
-
-    /**
-     * Setup validation for crop window inputs
-     */
-    setupCropValidation() {
-        // Crop window validation
-        const cropX = document.getElementById('cropX');
-        const cropY = document.getElementById('cropY');
-        const cropWidth = document.getElementById('cropWidth');
-        const cropHeight = document.getElementById('cropHeight');
-
-        if (cropX) {
-            this.inputValidator.setupInputValidation(cropX, 'number', {min: 0});
-        }
-        if (cropY) {
-            this.inputValidator.setupInputValidation(cropY, 'number', {min: 0});
-        }
-        if (cropWidth) {
-            this.inputValidator.setupInputValidation(cropWidth, 'number', {min: 1});
-        }
-        if (cropHeight) {
-            this.inputValidator.setupInputValidation(cropHeight, 'number', {min: 1});
-        }
     }
 
     /**
@@ -171,61 +145,6 @@ export class ValidationSetup {
         } catch (error) {
             ErrorHandler.showError(`Error validating all fields: ${error.message}`);
             return false;
-        }
-    }
-
-    /**
-     * Get validation summary for all fields
-     * @returns {Object} Summary of validation results
-     */
-    getValidationSummary() {
-        const summary = {
-            totalFields: 0,
-            validFields: 0,
-            invalidFields: 0,
-            errors: []
-        };
-
-        try {
-            const allInputs = document.querySelectorAll('[data-validate]');
-            summary.totalFields = allInputs.length;
-            
-            allInputs.forEach(input => {
-                const validateType = input.dataset.validate;
-                const result = this.inputValidator.validateInput(input, validateType);
-                
-                if (result.valid) {
-                    summary.validFields++;
-                } else {
-                    summary.invalidFields++;
-                    summary.errors.push({
-                        field: input.name || input.id || 'Unknown field',
-                        error: result.error
-                    });
-                }
-            });
-        } catch (error) {
-            summary.errors.push({
-                field: 'System',
-                error: `Validation system error: ${error.message}`
-            });
-        }
-
-        return summary;
-    }
-
-    /**
-     * Show validation summary to user
-     */
-    showValidationSummary() {
-        const summary = this.getValidationSummary();
-        
-        if (summary.errors.length === 0) {
-            ErrorHandler.showSuccess(`All ${summary.validFields} fields are valid`);
-        } else {
-            const errorMsg = `${summary.invalidFields} validation errors found:\n` +
-                summary.errors.map(e => `• ${e.field}: ${e.error}`).join('\n');
-            ErrorHandler.showError(errorMsg);
         }
     }
 

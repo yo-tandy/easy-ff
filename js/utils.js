@@ -60,37 +60,6 @@ export function validateNumericInput(value, min = 0, max = Infinity) {
     return Math.max(min, Math.min(max, num));
 }
 
-export function validateNumericInputStrict(value, fieldName, options = {}) {
-    const { min = 0, max = Infinity, allowNegative = false, allowZero = true } = options;
-    
-    if (value === '' || value === null || value === undefined) {
-        throw new Error(`${fieldName} is required`);
-    }
-
-    const num = parseFloat(value);
-    if (isNaN(num)) {
-        throw new Error(`${fieldName} must be a valid number`);
-    }
-
-    if (!allowNegative && num < 0) {
-        throw new Error(`${fieldName} cannot be negative`);
-    }
-
-    if (!allowZero && num === 0) {
-        throw new Error(`${fieldName} cannot be zero`);
-    }
-
-    if (num < min) {
-        throw new Error(`${fieldName} must be at least ${min}`);
-    }
-
-    if (num > max) {
-        throw new Error(`${fieldName} cannot exceed ${max}`);
-    }
-
-    return num;
-}
-
 export function copyToClipboard(text) {
     if (!navigator.clipboard) {
         // Fallback for older browsers

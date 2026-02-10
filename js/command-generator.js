@@ -6,13 +6,32 @@ export class CommandGenerator {
         // No initialization needed for now
     }
 
-    updateCommand(tabId) {
-        const inputName = document.querySelector(DOM_ELEMENTS.inputName).value;
+    _getCropDimensions() {
         const [inW, inH] = parseDimensions(document.querySelector(DOM_ELEMENTS.inDim).value);
         const [outW, outH] = parseDimensions(document.querySelector(DOM_ELEMENTS.outDim).value);
-        const ratio = Math.min(inH/outH, inW/outW);
-        const cropH = ratio * outH;
-        const cropW = ratio * outW;
+        const ratio = Math.min(inH / outH, inW / outW);
+        return { outW, outH, cropW: ratio * outW, cropH: ratio * outH };
+    }
+
+    _buildXExpr(sceneEl, cropW, duration) {
+        const cropPct = sceneEl.querySelector('.hCrop').value / 100;
+        const isPan = sceneEl.querySelector('.panToggle').checked;
+
+        if (!isPan) return `(in_w-${cropW})*${cropPct}`;
+
+        const cropPctEnd = sceneEl.querySelector('.hCropEnd').value / 100;
+        const method = sceneEl.querySelector('.panMethod').value;
+        const startX = `(in_w-${cropW})*${cropPct}`;
+        const endX = `(in_w-${cropW})*${cropPctEnd}`;
+
+        return method === PAN_METHODS.LINEAR
+            ? `${startX}+(${endX}-(${startX}))*(t/${duration})`
+            : `${startX}+(${endX}-(${startX}))*(1-cos(PI*t/${duration}))/2`;
+    }
+
+    updateCommand(tabId) {
+        const inputName = document.querySelector(DOM_ELEMENTS.inputName).value;
+        const { outW, outH, cropW, cropH } = this._getCropDimensions();
 
         const scenes = document.querySelectorAll(`#${tabId} .scene`);
         let filters = "";
@@ -22,25 +41,8 @@ export class CommandGenerator {
             const s = scene.querySelector('.start').value;
             const e = scene.querySelector('.end').value;
             const duration = (e - s).toFixed(2);
-            const cropPct = scene.querySelector('.hCrop').value / 100;
-            const isPan = scene.querySelector('.panToggle').checked;
-            
-            let xExpr;
-            if (!isPan) {
-                xExpr = `(in_w-${cropW})*${cropPct}`;
-            } else {
-                const cropPctEnd = scene.querySelector('.hCropEnd').value / 100;
-                const method = scene.querySelector('.panMethod').value;
-                const startX = `(in_w-${cropW})*${cropPct}`;
-                const endX = `(in_w-${cropW})*${cropPctEnd}`;
-                
-                if (method === PAN_METHODS.LINEAR) {
-                    xExpr = `${startX}+(${endX}-(${startX}))*(t/${duration})`;
-                } else {
-                    xExpr = `${startX}+(${endX}-(${startX}))*(1-cos(PI*t/${duration}))/2`;
-                }
-            }
-            
+            const xExpr = this._buildXExpr(scene, cropW, duration);
+
             filters += `[0:v]trim=start=${s}:end=${e},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:${xExpr}:0,scale=${outW}:${outH}[v${index}]; `;
             filters += `[0:a]atrim=start=${s}:end=${e},asetpts=PTS-STARTPTS[a${index}]; `;
             concatStr += `[v${index}][a${index}]`;
@@ -61,11 +63,7 @@ export class CommandGenerator {
 
     copySceneCommand(tabId, sceneEl) {
         const inputName = document.querySelector(DOM_ELEMENTS.inputName).value;
-        const [inW, inH] = parseDimensions(document.querySelector(DOM_ELEMENTS.inDim).value);
-        const [outW, outH] = parseDimensions(document.querySelector(DOM_ELEMENTS.outDim).value);
-        const ratio = Math.min(inH/outH, inW/outW);
-        const cropH = ratio * outH;
-        const cropW = ratio * outW;
+        const { outW, outH, cropW, cropH } = this._getCropDimensions();
 
         const scenes = Array.from(document.querySelectorAll(`#${tabId} .scene`));
         const sceneIndex = scenes.indexOf(sceneEl) + 1;
@@ -73,24 +71,7 @@ export class CommandGenerator {
         const s = sceneEl.querySelector('.start').value;
         const e = sceneEl.querySelector('.end').value;
         const duration = (e - s).toFixed(2);
-        const cropPct = sceneEl.querySelector('.hCrop').value / 100;
-        const isPan = sceneEl.querySelector('.panToggle').checked;
-        
-        let xExpr;
-        if (!isPan) {
-            xExpr = `(in_w-${cropW})*${cropPct}`;
-        } else {
-            const cropPctEnd = sceneEl.querySelector('.hCropEnd').value / 100;
-            const method = sceneEl.querySelector('.panMethod').value;
-            const startX = `(in_w-${cropW})*${cropPct}`;
-            const endX = `(in_w-${cropW})*${cropPctEnd}`;
-            
-            if (method === PAN_METHODS.LINEAR) {
-                xExpr = `${startX}+(${endX}-(${startX}))*(t/${duration})`;
-            } else {
-                xExpr = `${startX}+(${endX}-(${startX}))*(1-cos(PI*t/${duration}))/2`;
-            }
-        }
+        const xExpr = this._buildXExpr(sceneEl, cropW, duration);
 
         const clipName = document.querySelector(`#tabbtn-${tabId} span`)?.textContent || 'output';
         const safeClipName = sanitizeFilename(clipName);
@@ -126,7 +107,7 @@ export class CommandGenerator {
     downloadScript() {
         let script = '#!/bin/bash\n\n';
         const tabButtons = document.querySelectorAll('.tab-button');
-        
+
         tabButtons.forEach(btn => {
             const tabId = btn.id.replace('tabbtn-', '');
             const outputEl = document.getElementById(`output-${tabId}`);

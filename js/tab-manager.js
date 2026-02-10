@@ -2,18 +2,14 @@ import { DOM_ELEMENTS } from './constants.js';
 import { createElementFromHTML } from './utils.js';
 
 export class TabManager {
-    constructor(sceneManager, commandGenerator) {
+    constructor(sceneManager, commandGenerator, validationSetup) {
         this.tabCount = 0;
         this.activeTab = null;
         this.sceneManager = sceneManager;
         this.commandGenerator = commandGenerator;
-        
-        this.init();
-    }
+        this.validationSetup = validationSetup;
 
-    init() {
         this.setupEventListeners();
-        this.addTab('Clip 1'); // Initialize with first tab
     }
 
     setupEventListeners() {
@@ -21,12 +17,11 @@ export class TabManager {
         // This will be handled by the main app
     }
 
-    addTab(name) {
-        this.tabCount++;
-        const tabId = `clip-${this.tabCount}`;
-        const tabs = document.querySelector(DOM_ELEMENTS.tabs);
+    initializeFirstTab() {
+        this.addTab('Clip 1');
+    }
 
-        // Create tab button
+    _createTabButton(tabId, name) {
         const btnHtml = `
             <button class="tab-button" id="tabbtn-${tabId}">
                 <span>${name || `Clip ${this.tabCount}`}</span>
@@ -34,8 +29,7 @@ export class TabManager {
             </button>
         `;
         const btn = createElementFromHTML(btnHtml);
-        
-        // Setup event listeners for the tab button
+
         btn.addEventListener('click', (e) => {
             if (!e.target.classList.contains('tab-close')) {
                 this.setActiveTab(tabId);
@@ -47,9 +41,10 @@ export class TabManager {
             this.removeTab(tabId);
         });
 
-        tabs.appendChild(btn);
+        return btn;
+    }
 
-        // Create tab content
+    _createTabContent(tabId) {
         const contentHtml = `
             <div class="tab-content" id="${tabId}">
                 <div class="scenes"></div>
@@ -64,8 +59,7 @@ export class TabManager {
             </div>
         `;
         const content = createElementFromHTML(contentHtml);
-        
-        // Setup event listeners for tab content
+
         content.querySelector('.add-scene-btn').addEventListener('click', () => {
             this.sceneManager.addScene(tabId);
         });
@@ -74,11 +68,22 @@ export class TabManager {
             this.commandGenerator.copyCommand(tabId);
         });
 
+        return content;
+    }
+
+    addTab(name) {
+        this.tabCount++;
+        const tabId = `clip-${this.tabCount}`;
+
+        const btn = this._createTabButton(tabId, name);
+        document.querySelector(DOM_ELEMENTS.tabs).appendChild(btn);
+
+        const content = this._createTabContent(tabId);
         document.querySelector(DOM_ELEMENTS.tabsContent).appendChild(content);
 
         // Initialize validation for any inputs in the new tab content
-        if (window.ffmpegApp && window.ffmpegApp.validationSetup) {
-            window.ffmpegApp.validationSetup.initializeContainerValidation(content);
+        if (this.validationSetup) {
+            this.validationSetup.initializeContainerValidation(content);
         }
 
         this.setActiveTab(tabId);
@@ -95,7 +100,7 @@ export class TabManager {
                 initialStart = parseFloat(lastScene.querySelector('.end')?.value) || 0;
             }
         }
-        
+
         this.sceneManager.addScene(tabId, initialStart);
 
         return tabId;
@@ -106,7 +111,7 @@ export class TabManager {
             document.getElementById(`tabbtn-${this.activeTab}`)?.classList.remove('active');
             document.getElementById(this.activeTab)?.classList.remove('active');
         }
-        
+
         this.activeTab = tabId;
         document.getElementById(`tabbtn-${tabId}`)?.classList.add('active');
         document.getElementById(tabId)?.classList.add('active');
@@ -115,7 +120,7 @@ export class TabManager {
     removeTab(tabId) {
         document.getElementById(`tabbtn-${tabId}`)?.remove();
         document.getElementById(tabId)?.remove();
-        
+
         const remaining = document.querySelectorAll('.tab-button');
         if (remaining.length > 0) {
             const firstId = remaining[0].id.replace('tabbtn-', '');
@@ -123,7 +128,7 @@ export class TabManager {
         } else {
             this.addTab();
         }
-        
+
         this.sceneManager.validateAllTabs();
     }
 
@@ -151,52 +156,11 @@ export class TabManager {
         clipsData.forEach(clipData => {
             this.tabCount++;
             const tabId = `clip-${this.tabCount}`;
-            const tabs = document.querySelector(DOM_ELEMENTS.tabs);
 
-            const btnHtml = `
-                <button class="tab-button" id="tabbtn-${tabId}">
-                    <span>${clipData.name || `Clip ${this.tabCount}`}</span>
-                    <span class="tab-close">×</span>
-                </button>
-            `;
-            const btn = createElementFromHTML(btnHtml);
-            
-            btn.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('tab-close')) {
-                    this.setActiveTab(tabId);
-                }
-            });
+            const btn = this._createTabButton(tabId, clipData.name);
+            document.querySelector(DOM_ELEMENTS.tabs).appendChild(btn);
 
-            btn.querySelector('.tab-close').addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.removeTab(tabId);
-            });
-
-            tabs.appendChild(btn);
-
-            const contentHtml = `
-                <div class="tab-content" id="${tabId}">
-                    <div class="scenes"></div>
-                    <button class="add-scene-btn">+ Add Scene</button>
-                    <div style="margin-top: 20px;">
-                        <div class="command-header">
-                            <h3>Generated Command</h3>
-                            <button class="copy-btn" title="Copy to clipboard">📋</button>
-                        </div>
-                        <textarea id="output-${tabId}" readonly></textarea>
-                    </div>
-                </div>
-            `;
-            const content = createElementFromHTML(contentHtml);
-            
-            content.querySelector('.add-scene-btn').addEventListener('click', () => {
-                this.sceneManager.addScene(tabId);
-            });
-
-            content.querySelector('.copy-btn').addEventListener('click', () => {
-                this.commandGenerator.copyCommand(tabId);
-            });
-
+            const content = this._createTabContent(tabId);
             document.querySelector(DOM_ELEMENTS.tabsContent).appendChild(content);
 
             // Add scenes
@@ -217,7 +181,7 @@ export class TabManager {
             const firstId = firstBtn.id.replace('tabbtn-', '');
             this.setActiveTab(firstId);
         }
-        
+
         this.sceneManager.validateAllTabs();
     }
 }
