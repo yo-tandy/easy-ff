@@ -65,6 +65,19 @@
             <button class="set-btn" data-action="toggle-pan-mode" id="panToggleBtn">Pan: OFF</button>
             <button class="set-btn" data-action="set-scene-crop-end" id="setEndCropBtn" style="display:none;">🎯 Set End Crop</button>
             <button data-action="add-scene-from-preview">➕ Add New Scene</button>
+            <button class="detect-scenes-btn" data-action="detect-scenes">🔍 Detect Scenes</button>
+        </div>
+        <div class="scene-detect-progress" id="sceneDetectProgress">
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="sceneDetectFill" style="width:0%">0%</div>
+            </div>
+        </div>
+        <div class="scene-detect-results" id="sceneDetectResults">
+            <div class="scene-detect-list-scroll" id="sceneDetectList"></div>
+            <div class="scene-detect-actions">
+                <button class="create-scenes-btn" data-action="create-detected-scenes">Add Selected Scenes to Clip</button>
+                <button style="background:#6c757d" data-action="dismiss-detect-results">Dismiss</button>
+            </div>
         </div>
     </div>
 

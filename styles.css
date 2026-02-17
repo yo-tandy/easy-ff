@@ -17,14 +17,14 @@ body {
 }
 
 /* Scene Styles */
-.scene { 
-    border-left: 14px solid #007bff; 
-    padding: 8px 10px 8px 44px; 
-    margin-bottom: 8px; 
-    position: relative; 
-    display: flex; 
-    align-items: center; 
-    gap: 12px; 
+.scene {
+    border-left: 14px solid #007bff;
+    padding: 8px 10px 8px 44px;
+    margin-bottom: 8px;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
     background: #eee;
 }
 
@@ -426,6 +426,239 @@ button {
 
 .scene-actions button.set-btn { 
     background: #17a2b8; 
+}
+
+/* Keyframe Timeline */
+.keyframe-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 180px;
+}
+
+.keyframe-section > label {
+    white-space: nowrap;
+    min-width: auto;
+}
+
+.keyframe-timeline {
+    position: relative;
+    height: 20px;
+    flex: 1;
+    min-width: 100px;
+    cursor: pointer;
+}
+
+.keyframe-bar {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #ccc;
+    border-radius: 2px;
+    transform: translateY(-50%);
+}
+
+.keyframe-dot {
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    background: #007bff;
+    border: 2px solid #0056b3;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    z-index: 1;
+    transition: background 0.15s;
+}
+
+.keyframe-dot:hover {
+    background: #0056b3;
+    transform: translate(-50%, -50%) scale(1.2);
+}
+
+.keyframe-dot.selected {
+    background: #28a745;
+    border-color: #1e7e34;
+    box-shadow: 0 0 4px rgba(40, 167, 69, 0.5);
+}
+
+.keyframe-dot:active {
+    cursor: grabbing;
+}
+
+.keyframe-add-btn, .keyframe-clear-btn {
+    padding: 2px 6px;
+    font-size: 0.75em;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.keyframe-add-btn {
+    background: #28a745;
+}
+
+.keyframe-clear-btn {
+    background: #6c757d;
+}
+
+.keyframe-timeline-full .keyframe-timeline {
+    width: 100%;
+    min-width: unset;
+    flex: none;
+    height: 24px;
+}
+
+.panFieldsRow {
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Scene Detection UI */
+.detect-scenes-section {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+}
+
+.detect-scenes-btn {
+    background: #6f42c1;
+}
+
+.scene-detect-progress {
+    margin: 8px 0;
+    display: none;
+}
+
+.scene-detect-progress .progress-bar-container {
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    height: 20px;
+}
+
+.scene-detect-progress .progress-bar-fill {
+    height: 100%;
+    background: #6f42c1;
+    transition: width 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75em;
+    font-weight: bold;
+}
+
+.scene-detect-results {
+    display: none;
+    margin-top: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.scene-detect-list-scroll {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.scene-detect-results .result-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 0.85em;
+    cursor: pointer;
+    user-select: none;
+}
+
+.scene-detect-results .result-item:hover {
+    background: #eef3ff;
+}
+
+.scene-detect-results .result-item:last-child {
+    border-bottom: none;
+}
+
+.scene-detect-results .confidence-badge {
+    background: #e9ecef;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 0.8em;
+    font-family: monospace;
+}
+
+.scene-detect-results .segment-label {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.scene-detect-results .segment-times {
+    font-family: monospace;
+    cursor: pointer;
+    color: #007bff;
+}
+
+.scene-detect-results .segment-times:hover {
+    text-decoration: underline;
+}
+
+.scene-detect-results .segment-duration {
+    color: #888;
+    font-family: monospace;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+.scene-detect-actions {
+    padding: 8px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 6px;
+}
+
+.create-scenes-btn {
+    background: #28a745;
+}
+
+/* Seek bar scene markers */
+.seek-marker {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: #6f42c1;
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 2;
+}
+
+#videoSeek {
+    position: relative;
+}
+
+.seek-markers-container {
+    position: relative;
+    height: 0;
+}
+
+/* Auto-Track Button */
+.auto-track-btn {
+    padding: 2px 6px;
+    font-size: 0.75em;
+    border-radius: 3px;
+    background: #fd7e14;
+    white-space: nowrap;
+}
+
+.auto-track-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* Error and Success Notifications */

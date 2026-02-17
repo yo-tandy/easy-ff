@@ -15,6 +15,8 @@ export class VideoPreviewManager {
         this.frameRate = DEFAULTS.DEFAULT_FRAME_RATE;
         this.selectedScene = null;
         this.loadedVideoFilename = '';
+        this.scenePlaybackEnd = null;
+        this.onCropDragEnd = null;
 
         this.init();
     }
@@ -136,6 +138,7 @@ export class VideoPreviewManager {
                 if (!video.seeking) {
                     document.querySelector(DOM_ELEMENTS.videoSeek).value = video.currentTime;
                     this.updateTimeDisplay();
+                    this.updateCropForPlayback();
                 }
             };
 
@@ -268,8 +271,14 @@ export class VideoPreviewManager {
         };
 
         const endDrag = () => {
+            const wasDragging = isDragging;
+            const wasDraggingEnd = isDraggingEnd;
             isDragging = false;
             isDraggingEnd = false;
+            if ((wasDragging || wasDraggingEnd) && this.onCropDragEnd) {
+                const cropPct = wasDraggingEnd ? this.cropPercentEnd : this.cropPercent;
+                this.onCropDragEnd(cropPct, wasDraggingEnd);
+            }
         };
 
         cropWindow?.addEventListener('mousedown', (e) => startDrag(e, false));
@@ -295,11 +304,20 @@ export class VideoPreviewManager {
         const video = document.querySelector(DOM_ELEMENTS.previewVideo);
         const btn = document.querySelector(DOM_ELEMENTS.playPauseBtn);
         if (video.paused) {
+            if (this.selectedScene) {
+                const start = parseFloat(this.selectedScene.querySelector('.start').value) || 0;
+                const end = parseFloat(this.selectedScene.querySelector('.end').value) || 0;
+                if (video.currentTime < start || video.currentTime >= end) {
+                    video.currentTime = start;
+                }
+                this.scenePlaybackEnd = end;
+            }
             video.play();
             btn.textContent = '⏸ Pause';
         } else {
             video.pause();
             btn.textContent = '▶ Play';
+            this.scenePlaybackEnd = null;
         }
     }
 
@@ -356,35 +374,88 @@ export class VideoPreviewManager {
     selectScene(sceneEl) {
         // Deselect previous
         document.querySelectorAll('.scene.selected').forEach(s => s.classList.remove('selected'));
-        
+        // Clear scene playback boundary
+        this.scenePlaybackEnd = null;
+        // Deselect any selected keyframe dots
+        document.querySelectorAll('.keyframe-dot.selected').forEach(d => d.classList.remove('selected'));
+
         if (sceneEl) {
             sceneEl.classList.add('selected');
             this.selectedScene = sceneEl;
-            
+
             // Jump video to scene start time
             if (this.videoLoaded) {
                 const video = document.querySelector(DOM_ELEMENTS.previewVideo);
                 const start = parseFloat(sceneEl.querySelector('.start').value) || 0;
                 video.currentTime = start;
-                
+
                 // Set crop position from scene
                 const hCrop = parseFloat(sceneEl.querySelector('.hCrop').value) || 50;
                 this.cropPercent = hCrop;
-                
+
                 // Set end crop position from scene
                 const hCropEnd = parseFloat(sceneEl.querySelector('.hCropEnd').value) || hCrop;
                 this.cropPercentEnd = hCropEnd;
-                
+
                 // Check if scene has pan enabled and update preview accordingly
                 const isPan = sceneEl.querySelector('.panToggle').checked;
                 if (isPan !== this.panMode) {
                     this.togglePanMode(false);
                 }
-                
+
                 this.updateCropWindow();
             }
         } else {
             this.selectedScene = null;
+        }
+    }
+
+    // Get interpolated crop% for a given time within a scene's keyframes
+    _getKeyframeCropAtTime(sceneEl, currentTime) {
+        const raw = sceneEl.dataset.keyframes;
+        if (!raw) return null;
+        let keyframes;
+        try { keyframes = JSON.parse(raw); } catch { return null; }
+        if (!Array.isArray(keyframes) || keyframes.length < 2) return null;
+
+        const sorted = [...keyframes].sort((a, b) => a.t - b.t);
+        const sceneStart = parseFloat(sceneEl.querySelector('.start').value) || 0;
+        const t = currentTime - sceneStart;
+
+        // Before first keyframe
+        if (t <= sorted[0].t) return sorted[0].cropPct;
+        // After last keyframe
+        if (t >= sorted[sorted.length - 1].t) return sorted[sorted.length - 1].cropPct;
+
+        // Find segment
+        for (let i = 0; i < sorted.length - 1; i++) {
+            if (t >= sorted[i].t && t <= sorted[i + 1].t) {
+                const segDuration = sorted[i + 1].t - sorted[i].t;
+                if (segDuration === 0) return sorted[i].cropPct;
+                const progress = (t - sorted[i].t) / segDuration;
+                return sorted[i].cropPct + (sorted[i + 1].cropPct - sorted[i].cropPct) * progress;
+            }
+        }
+        return sorted[sorted.length - 1].cropPct;
+    }
+
+    // Called during playback to animate crop position along keyframes
+    updateCropForPlayback() {
+        if (!this.videoLoaded || !this.selectedScene) return;
+        const video = document.querySelector(DOM_ELEMENTS.previewVideo);
+
+        // Auto-pause at scene end during scene-bounded playback
+        if (this.scenePlaybackEnd !== null && video.currentTime >= this.scenePlaybackEnd) {
+            video.pause();
+            document.querySelector(DOM_ELEMENTS.playPauseBtn).textContent = '▶ Play';
+            this.scenePlaybackEnd = null;
+            return;
+        }
+
+        const interpolated = this._getKeyframeCropAtTime(this.selectedScene, video.currentTime);
+        if (interpolated !== null) {
+            this.cropPercent = interpolated;
+            this.updateCropWindow();
         }
     }
 

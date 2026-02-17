@@ -19,6 +19,12 @@ export class CommandGenerator {
 
         if (!isPan) return `(in_w-${cropW})*${cropPct}`;
 
+        // Check for keyframes
+        const keyframes = this._getKeyframes(sceneEl);
+        if (keyframes && keyframes.length >= 2) {
+            return this._buildKeyframeXExpr(keyframes, cropW, duration);
+        }
+
         const cropPctEnd = sceneEl.querySelector('.hCropEnd').value / 100;
         const method = sceneEl.querySelector('.panMethod').value;
         const startX = `(in_w-${cropW})*${cropPct}`;
@@ -27,6 +33,47 @@ export class CommandGenerator {
         return method === PAN_METHODS.LINEAR
             ? `${startX}+(${endX}-(${startX}))*(t/${duration})`
             : `${startX}+(${endX}-(${startX}))*(1-cos(PI*t/${duration}))/2`;
+    }
+
+    _getKeyframes(sceneEl) {
+        const raw = sceneEl.dataset.keyframes;
+        if (!raw) return null;
+        try {
+            const kf = JSON.parse(raw);
+            return Array.isArray(kf) && kf.length >= 2 ? kf : null;
+        } catch { return null; }
+    }
+
+    _buildKeyframeXExpr(keyframes, cropW, duration) {
+        // Sort keyframes by time
+        const sorted = [...keyframes].sort((a, b) => a.t - b.t);
+        const maxAvail = `(in_w-${cropW})`;
+
+        // Build piecewise linear interpolation:
+        // if(lt(t,T1), lerp(X0,X1,(t-T0)/(T1-T0)), if(lt(t,T2), lerp(X1,X2,...), ..., XN))
+        const buildSegment = (idx) => {
+            if (idx >= sorted.length - 1) {
+                // Last keyframe — hold at final position
+                return `${maxAvail}*${(sorted[sorted.length - 1].cropPct / 100).toFixed(6)}`;
+            }
+            const kf = sorted[idx];
+            const kfNext = sorted[idx + 1];
+            const t0 = kf.t.toFixed(4);
+            const t1 = kfNext.t.toFixed(4);
+            const x0 = `${maxAvail}*${(kf.cropPct / 100).toFixed(6)}`;
+            const x1 = `${maxAvail}*${(kfNext.cropPct / 100).toFixed(6)}`;
+            const progress = `(t-${t0})/${(kfNext.t - kf.t).toFixed(4)}`;
+            const lerp = `${x0}+(${x1}-(${x0}))*${progress}`;
+
+            if (idx === sorted.length - 2) {
+                // Last segment — no more conditionals needed
+                return lerp;
+            }
+            return `if(lt(t,${t1}),${lerp},${buildSegment(idx + 1)})`;
+        };
+
+        const expr = buildSegment(0);
+        return `clip(${expr},0,${maxAvail})`;
     }
 
     updateCommand(tabId) {
@@ -43,7 +90,7 @@ export class CommandGenerator {
             const duration = (e - s).toFixed(2);
             const xExpr = this._buildXExpr(scene, cropW, duration);
 
-            filters += `[0:v]trim=start=${s}:end=${e},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:${xExpr}:0,scale=${outW}:${outH}[v${index}]; `;
+            filters += `[0:v]trim=start=${s}:end=${e},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:'${xExpr}':0,scale=${outW}:${outH}[v${index}]; `;
             filters += `[0:a]atrim=start=${s}:end=${e},asetpts=PTS-STARTPTS[a${index}]; `;
             concatStr += `[v${index}][a${index}]`;
         });
@@ -78,7 +125,7 @@ export class CommandGenerator {
         const outputName = `${safeClipName}-${sceneIndex}.mp4`;
 
         const cmd = `ffmpeg -i ${inputName} -filter_complex \\
-"[0:v]trim=start=${s}:end=${e},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:${xExpr}:0,scale=${outW}:${outH}[v]; [0:a]atrim=start=${s}:end=${e},asetpts=PTS-STARTPTS[a]" \\
+"[0:v]trim=start=${s}:end=${e},setpts=PTS-STARTPTS,crop=${cropW}:${cropH}:'${xExpr}':0,scale=${outW}:${outH}[v]; [0:a]atrim=start=${s}:end=${e},asetpts=PTS-STARTPTS[a]" \\
 -map "[v]" -map "[a]" -c:v libx264 -c:a aac ${outputName}`;
 
         copyToClipboard(cmd).then(() => {

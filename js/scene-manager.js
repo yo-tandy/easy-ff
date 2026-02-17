@@ -16,8 +16,8 @@ export class SceneManager {
     createSceneElement(tabId, sceneData) {
         this.sceneCount++;
         const sceneId = this.sceneCount;
-        
-        const { start, end, hCrop, pan = false, hCropEnd = hCrop, panMethod = 'linear' } = sceneData;
+
+        const { start, end, hCrop, pan = false, hCropEnd = hCrop, panMethod = 'linear', keyframes = [] } = sceneData;
         const length = (end - start).toFixed(2);
 
         const html = `
@@ -33,7 +33,7 @@ export class SceneManager {
                     <div><label>Horiz. Crop %</label><input type="number" class="hCrop" value="${hCrop}" min="0" max="100" data-validate="percentage" data-validate-options='{"validateOnInput": true}'></div>
                     <div class="panField"><label>Pan?</label><input type="checkbox" class="panToggle" ${pan ? 'checked' : ''}></div>
                 </div>
-                <div id="panFields-${sceneId}" style="display:${pan ? 'flex' : 'none'}; margin-left:8px;" class="grid">
+                <div id="panFields-${sceneId}" style="display:${pan ? 'flex' : 'none'}; margin-left:8px;" class="grid panFieldsRow">
                     <div><label>End Horiz %</label><input type="number" class="hCropEnd" value="${hCropEnd}" min="0" max="100" data-validate="percentage" data-validate-options='{"validateOnInput": true}'></div>
                     <div>
                         <label>Pan Method</label>
@@ -42,13 +42,31 @@ export class SceneManager {
                             <option value="zoom" ${panMethod === 'zoom' ? 'selected' : ''}>Zoom-like</option>
                         </select>
                     </div>
+                    <div class="keyframe-section">
+                        <label>Keyframes</label>
+                        <button class="keyframe-add-btn" title="Add keyframe at current video time">+ KF</button>
+                        <button class="keyframe-clear-btn" title="Clear all keyframes">Clear</button>
+                        <button class="auto-track-btn" title="Auto-track subject movement">Auto-Track</button>
+                    </div>
+                </div>
+                <div class="keyframe-timeline-full" style="display:none">
+                    <div class="keyframe-timeline" data-scene-id="${sceneId}">
+                        <div class="keyframe-bar"></div>
+                    </div>
                 </div>
             </div>
         `;
 
         const div = createElementFromHTML(html);
+
+        // Store keyframes data
+        if (keyframes && keyframes.length > 0) {
+            div.dataset.keyframes = JSON.stringify(keyframes);
+        }
+
         this.setupSceneEventListeners(div, tabId, sceneId);
         this.setupSceneDrag(div, tabId);
+        this.renderKeyframeDots(div);
 
         return div;
     }
@@ -106,8 +124,10 @@ export class SceneManager {
 
         // Scene selection
         sceneEl.addEventListener('click', (e) => {
-            if (!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+            if (!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select') && !e.target.closest('.keyframe-dot')) {
                 this.videoPreview.selectScene(sceneEl);
+                // Deselect keyframe dots when clicking scene body
+                sceneEl.querySelectorAll('.keyframe-dot.selected').forEach(d => d.classList.remove('selected'));
             }
         });
 
@@ -130,10 +150,13 @@ export class SceneManager {
         const validateTiming = () => {
             this.inputValidator.validateSceneTiming(startInput, endInput, lengthInput);
         };
-        
+
         startInput.addEventListener('blur', validateTiming);
         endInput.addEventListener('blur', validateTiming);
         lengthInput.addEventListener('blur', validateTiming);
+
+        // Keyframe controls
+        this.setupKeyframeListeners(sceneEl, tabId);
     }
 
     _updateSceneTiming(startInput, endInput, lengthInput, changedField, tabId) {
@@ -396,5 +419,299 @@ export class SceneManager {
         const scene = document.getElementById(`scene-${sceneId}`);
         const isChecked = scene.querySelector('.panToggle').checked;
         panFields.style.display = isChecked ? 'flex' : 'none';
+    }
+
+    // --- Keyframe management ---
+
+    getKeyframes(sceneEl) {
+        const raw = sceneEl.dataset.keyframes;
+        if (!raw) return [];
+        try {
+            const kf = JSON.parse(raw);
+            return Array.isArray(kf) ? kf : [];
+        } catch { return []; }
+    }
+
+    setKeyframes(sceneEl, keyframes, tabId) {
+        if (keyframes.length > 0) {
+            sceneEl.dataset.keyframes = JSON.stringify(keyframes);
+        } else {
+            delete sceneEl.dataset.keyframes;
+        }
+        this.renderKeyframeDots(sceneEl);
+        if (tabId) {
+            this.commandGenerator.updateCommand(tabId);
+        }
+    }
+
+    addKeyframe(sceneEl, tabId) {
+        const video = document.querySelector('#previewVideo');
+        if (!video || !this.videoPreview.videoLoaded) return;
+
+        const sceneStart = parseFloat(sceneEl.querySelector('.start').value) || 0;
+        const sceneEnd = parseFloat(sceneEl.querySelector('.end').value) || 0;
+        const currentTime = video.currentTime;
+
+        // Clamp to scene bounds
+        const t = Math.max(0, Math.min(sceneEnd - sceneStart, currentTime - sceneStart));
+        const cropPct = this.videoPreview.cropPercent;
+
+        const keyframes = this.getKeyframes(sceneEl);
+        // Don't add duplicate at same time (within 0.05s)
+        if (keyframes.some(kf => Math.abs(kf.t - t) < 0.05)) return;
+
+        keyframes.push({ t: parseFloat(t.toFixed(3)), cropPct: parseFloat(cropPct.toFixed(1)) });
+        keyframes.sort((a, b) => a.t - b.t);
+
+        this.setKeyframes(sceneEl, keyframes, tabId);
+
+        // Auto-enable pan if we have 2+ keyframes
+        const panToggle = sceneEl.querySelector('.panToggle');
+        if (keyframes.length >= 2 && !panToggle.checked) {
+            panToggle.checked = true;
+            panToggle.dispatchEvent(new Event('change'));
+        }
+    }
+
+    removeKeyframe(sceneEl, index, tabId) {
+        const keyframes = this.getKeyframes(sceneEl);
+        keyframes.splice(index, 1);
+        this.setKeyframes(sceneEl, keyframes, tabId);
+    }
+
+    clearKeyframes(sceneEl, tabId) {
+        this.setKeyframes(sceneEl, [], tabId);
+    }
+
+    updateSelectedKeyframeCrop(cropPercent) {
+        const sceneEl = this.videoPreview.selectedScene;
+        if (!sceneEl) return;
+
+        const selectedDot = sceneEl.querySelector('.keyframe-dot.selected');
+        if (!selectedDot) return;
+
+        const idx = parseInt(selectedDot.dataset.index);
+        const keyframes = this.getKeyframes(sceneEl);
+        if (!keyframes[idx]) return;
+
+        keyframes[idx].cropPct = parseFloat(cropPercent.toFixed(1));
+        const tabId = this._getTabIdForScene(sceneEl);
+        this.setKeyframes(sceneEl, keyframes, tabId);
+
+        // Re-apply selection to the dot at the same index (renderKeyframeDots recreates all dots)
+        const newDot = sceneEl.querySelectorAll('.keyframe-dot')[idx];
+        if (newDot) newDot.classList.add('selected');
+    }
+
+    renderKeyframeDots(sceneEl) {
+        const timeline = sceneEl.querySelector('.keyframe-timeline');
+        if (!timeline) return;
+
+        const fullContainer = sceneEl.querySelector('.keyframe-timeline-full');
+        const bar = timeline.querySelector('.keyframe-bar');
+        // Remove existing dots
+        timeline.querySelectorAll('.keyframe-dot').forEach(d => d.remove());
+
+        const keyframes = this.getKeyframes(sceneEl);
+        if (keyframes.length === 0) {
+            if (fullContainer) fullContainer.style.display = 'none';
+            return;
+        }
+        if (fullContainer) fullContainer.style.display = 'block';
+
+        const sceneStart = parseFloat(sceneEl.querySelector('.start').value) || 0;
+        const sceneEnd = parseFloat(sceneEl.querySelector('.end').value) || 0;
+        const duration = sceneEnd - sceneStart;
+        if (duration <= 0) return;
+
+        keyframes.forEach((kf, idx) => {
+            const dot = document.createElement('div');
+            dot.className = 'keyframe-dot';
+            dot.dataset.index = idx;
+            dot.title = `${kf.t.toFixed(2)}s → ${kf.cropPct.toFixed(1)}%`;
+            const pct = (kf.t / duration) * 100;
+            dot.style.left = `${Math.max(0, Math.min(100, pct))}%`;
+
+            // Delete on right-click
+            dot.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const tabId = this._getTabIdForScene(sceneEl);
+                this.removeKeyframe(sceneEl, idx, tabId);
+            });
+
+            // Select on click — update crop preview
+            dot.addEventListener('click', (e) => {
+                e.stopPropagation();
+                timeline.querySelectorAll('.keyframe-dot').forEach(d => d.classList.remove('selected'));
+                dot.classList.add('selected');
+                if (this.videoPreview) {
+                    this.videoPreview.cropPercent = kf.cropPct;
+                    this.videoPreview.updateCropWindow();
+                    // Jump video to keyframe time
+                    const video = document.querySelector('#previewVideo');
+                    if (video) {
+                        video.currentTime = sceneStart + kf.t;
+                        this.videoPreview.updateTimeDisplay();
+                    }
+                }
+            });
+
+            // Drag to reposition in time
+            this._setupKeyframeDotDrag(dot, sceneEl, idx);
+
+            timeline.appendChild(dot);
+        });
+    }
+
+    _setupKeyframeDotDrag(dot, sceneEl, idx) {
+        let isDragging = false;
+        let hasMoved = false;
+        let startClientX = 0;
+
+        dot.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // Left click only
+            isDragging = true;
+            hasMoved = false;
+            startClientX = e.clientX;
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        const handleMove = (e) => {
+            if (!isDragging) return;
+            hasMoved = true;
+            const timeline = sceneEl.querySelector('.keyframe-timeline');
+            const rect = timeline.getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+
+            const sceneStart = parseFloat(sceneEl.querySelector('.start').value) || 0;
+            const sceneEnd = parseFloat(sceneEl.querySelector('.end').value) || 0;
+            const duration = sceneEnd - sceneStart;
+
+            const newT = parseFloat((pct * duration).toFixed(3));
+            const keyframes = this.getKeyframes(sceneEl);
+            if (keyframes[idx]) {
+                keyframes[idx].t = newT;
+                dot.style.left = `${pct * 100}%`;
+                dot.title = `${newT.toFixed(2)}s → ${keyframes[idx].cropPct.toFixed(1)}%`;
+            }
+        };
+
+        const handleUp = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            if (hasMoved) {
+                const keyframes = this.getKeyframes(sceneEl);
+                keyframes.sort((a, b) => a.t - b.t);
+                const tabId = this._getTabIdForScene(sceneEl);
+                this.setKeyframes(sceneEl, keyframes, tabId);
+            }
+            hasMoved = false;
+        };
+
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleUp);
+    }
+
+    _getTabIdForScene(sceneEl) {
+        const tabContent = sceneEl.closest('.tab-content');
+        return tabContent ? tabContent.id : null;
+    }
+
+    setupKeyframeListeners(sceneEl, tabId) {
+        const addBtn = sceneEl.querySelector('.keyframe-add-btn');
+        const clearBtn = sceneEl.querySelector('.keyframe-clear-btn');
+        const autoTrackBtn = sceneEl.querySelector('.auto-track-btn');
+
+        if (addBtn) {
+            addBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.addKeyframe(sceneEl, tabId);
+            });
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.clearKeyframes(sceneEl, tabId);
+            });
+        }
+
+        if (autoTrackBtn) {
+            autoTrackBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.runAutoTrack(sceneEl, tabId, autoTrackBtn);
+            });
+        }
+    }
+
+    async runAutoTrack(sceneEl, tabId, btn) {
+        if (!this.autoTracker) {
+            alert('Auto-tracking is not available.');
+            return;
+        }
+        if (!this.videoPreview || !this.videoPreview.videoLoaded) {
+            alert('Please load a video first.');
+            return;
+        }
+
+        const video = document.querySelector('#previewVideo');
+        const startTime = parseFloat(sceneEl.querySelector('.start').value) || 0;
+        const endTime = parseFloat(sceneEl.querySelector('.end').value) || 0;
+
+        if (endTime <= startTime) {
+            alert('Scene must have a valid duration.');
+            return;
+        }
+
+        // Calculate crop width ratio from output dimensions
+        const inDim = document.querySelector('#inDim').value;
+        const outDim = document.querySelector('#outDim').value;
+        let cropWidthRatio = 0.5;
+        try {
+            const { parseDimensions } = await import('./utils.js');
+            const [inW, inH] = parseDimensions(inDim);
+            const [outW, outH] = parseDimensions(outDim);
+            const ratio = Math.min(inH / outH, inW / outW);
+            cropWidthRatio = (ratio * outW) / inW;
+        } catch {}
+
+        const origText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+
+        // Pause video
+        video.pause();
+
+        try {
+            const keyframes = await this.autoTracker.track(video, startTime, endTime, {
+                sampleRate: 3,
+                cropWidthRatio,
+                onProgress: (pct, msg) => {
+                    btn.textContent = msg ? `${msg} ${pct}%` : `${pct}%`;
+                }
+            });
+
+            if (keyframes.length === 0) {
+                alert('No person detected in this scene. Keyframes were not created.');
+                return;
+            }
+
+            // Set keyframes and enable pan
+            this.setKeyframes(sceneEl, keyframes, tabId);
+            const panToggle = sceneEl.querySelector('.panToggle');
+            if (!panToggle.checked) {
+                panToggle.checked = true;
+                panToggle.dispatchEvent(new Event('change'));
+            }
+
+            // Select the scene to show preview
+            this.videoPreview.selectScene(sceneEl);
+        } catch (err) {
+            alert(`Auto-tracking failed: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = origText;
+        }
     }
 }

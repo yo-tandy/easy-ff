@@ -64,6 +64,16 @@ export class ProjectManager {
                             hCropEnd: hCropEndVal,
                             panMethod: scene.querySelector('.panMethod')?.value || 'linear'
                         };
+
+                        // Save keyframes if present
+                        if (scene.dataset.keyframes) {
+                            try {
+                                const kf = JSON.parse(scene.dataset.keyframes);
+                                if (Array.isArray(kf) && kf.length > 0) {
+                                    sceneData.keyframes = kf;
+                                }
+                            } catch {}
+                        }
                         
                         if (sceneData.end <= sceneData.start) {
                             throw new Error(`Invalid scene: end time (${sceneData.end}) must be greater than start time (${sceneData.start})`);
